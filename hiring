@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hiring Velocity Card</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://cdn.jsdelivr.net/fontsource/css/inter@latest/index.css');
+body{background:#060606;font-family:'Inter',ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+@keyframes unfold{0%{transform:scaleX(.04)}55%{transform:scaleX(1.015)}100%{transform:scaleX(1)}}
+.unfold{animation:unfold .8s cubic-bezier(.22,1,.36,1) both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.late{opacity:0;animation:fadeIn .6s ease .45s forwards}
+@keyframes growBar{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.bar{transform-origin:bottom;animation:growBar .7s cubic-bezier(.22,1,.36,1) both}
+@keyframes roll{from{opacity:0;transform:translateY(14px);filter:blur(3px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+.roll{animation:roll .7s cubic-bezier(.22,1,.36,1) both}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<script type="importmap">
+{"imports":{"react":"https://esm.sh/react@18.3.1","react-dom/client":"https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1","lucide-react":"https://esm.sh/lucide-react@0.454.0?deps=react@18.3.1"}}
+</script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-type="module">
+import React, { useState, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { ArrowUpRight } from "lucide-react";
+
+/* weekly openings, Jan → Jun */
+const DATA = [22,24,23,26,28,27,30,31,29,33,34,32,36,38,37,40,41,39,43,45,44,47,48,46,50,52];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun"];
+
+function CountTo({ end, delay = 700, dur = 900 }) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    let raf; const t0 = performance.now() + delay;
+    const tick = (t) => {
+      const p = Math.min(Math.max((t - t0) / dur, 0), 1);
+      setV(Math.round(end * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [end, delay, dur]);
+  return <span className="roll tabular-nums" style={{ animationDelay: delay + "ms" }}>{v}</span>;
+}
+
+function TrendCard({
+  title = "Hiring",
+  subtitle = "Velocity",
+  data = DATA,
+  labels = MONTHS,
+  stats = [["Openings this month", 200], ["Across period", 955]],
+}) {
+  const [active, setActive] = useState(null);
+  const max = Math.max(...data);
+  const n = data.length;
+
+  return (
+    <div className="unfold relative w-full max-w-2xl rounded-[24px] border border-white/10 bg-gradient-to-b from-[#17141A] to-[#0C0A0E] p-7 shadow-[0_40px_90px_-30px_rgba(0,0,0,.9)]">
+      {/* header */}
+      <div className="late flex items-start justify-between">
+        <div>
+          <h3 className="text-2xl font-semibold tracking-tight text-white">{title}</h3>
+          <p className="text-2xl font-medium tracking-tight text-white/40">{subtitle}</p>
+        </div>
+        <button aria-label="Open details" className="group grid h-11 w-11 place-items-center rounded-full bg-white shadow-sm transition hover:bg-white/90 active:scale-95">
+          <ArrowUpRight className="h-4 w-4 text-black transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </button>
+      </div>
+
+      {/* chart */}
+      <div className="relative mt-6 h-36" onMouseLeave={() => setActive(null)}>
+        {/* tooltip */}
+        <div
+          className={"pointer-events-none absolute z-10 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-black shadow-lg transition-all duration-200 " + (active === null ? "scale-75 opacity-0" : "scale-100 opacity-100")}
+          style={{ left: `${((active ?? 0) + .5) / n * 100}%`, bottom: `${(data[active ?? 0] / max) * 82 + 14}%` }}
+        >
+          {data[active ?? 0]}
+        </div>
+        {/* thin line bars */}
+        <div className="flex h-full items-end justify-between gap-[4px] sm:gap-[6px]">
+          {data.map((v, i) => {
+            const isActive = active === i;
+            const near = active !== null && Math.abs(active - i) <= 2 && !isActive;
+            return (
+              <div
+                key={i}
+                className="bar relative flex h-full flex-1 cursor-pointer items-end justify-center"
+                style={{ animationDelay: 450 + i * 22 + "ms" }}
+                onMouseEnter={() => setActive(i)}
+              >
+                <div
+                  className={"w-full rounded-full transition-all duration-150 " + (isActive ? "!w-[5px] bg-white" : near ? "bg-white/60" : "bg-white/25")}
+                  style={{ height: `${(v / max) * 100}%`, maxWidth: 5 }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* axis */}
+      <div className="late mt-3 flex justify-between text-[10px] font-medium text-white/40">
+        {labels.map((m) => <span key={m}>{m}</span>)}
+      </div>
+
+      {/* stats */}
+      <div className="late mt-6 grid grid-cols-2 gap-4 border-t border-white/10 pt-5">
+        {stats.map(([l, v]) => (
+          <div key={l}>
+            <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-white/45">{l}</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight text-white">
+              {typeof v === "number" ? <CountTo end={v} /> : v}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <main className="flex min-h-screen items-center justify-center p-6">
+      <TrendCard />
+    </main>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
